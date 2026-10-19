@@ -74,3 +74,30 @@ def test_portal_key_and_request_error_do_not_leak(monkeypatch, caplog):
         client.call_api.__wrapped__(client, "public_data_standard", "getDataSetOpnStdBidPblancInfo", {})
     assert "secret" not in str(error.value)
     assert "secret" not in caplog.text
+
+
+@pytest.mark.parametrize("value,reason", [
+    ("", "missing_authorization_header"),
+    (TOKEN, "missing_bearer_prefix"),
+    (f"Bearer Bearer {TOKEN}", "malformed_bearer_header"),
+    ("Bearer different-secret-value", "token_mismatch"),
+])
+def test_auth_diagnosis_never_logs_token(monkeypatch, caplog, value, reason):
+    monkeypatch.setenv("MCP_ACCESS_TOKEN", TOKEN)
+    with TestClient(create_http_app(mcp, "0.0.0.0")) as client:
+        response = client.post("/mcp", headers={"authorization": value})
+    assert response.status_code == 401
+    assert response.json()["reason"] == reason
+    assert f"reason={reason}" in caplog.text
+    assert TOKEN not in caplog.text
+    assert "different-secret-value" not in caplog.text
+
+
+def test_bearer_scheme_is_case_insensitive(monkeypatch):
+    monkeypatch.setenv("MCP_ACCESS_TOKEN", TOKEN)
+    with TestClient(create_http_app(mcp, "0.0.0.0")) as client:
+        response = client.post("/mcp", headers={**HEADERS, "Authorization": f"bearer {TOKEN}"}, json={
+            "jsonrpc": "2.0", "id": 1, "method": "tools/list",
+        })
+    assert response.status_code == 200
+    assert len(response.json()["result"]["tools"]) == 16

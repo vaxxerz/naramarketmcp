@@ -1,10 +1,13 @@
 """Authenticated Streamable HTTP deployment for a shared Claude connector."""
 
 import hmac
+import logging
 import os
 
 from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
+
+logger = logging.getLogger("naramarket.remote_auth")
 
 
 class TeamAccessMiddleware:
@@ -12,7 +15,7 @@ class TeamAccessMiddleware:
 
     def __init__(self, app, token: str):
         self.app = app
-        self.expected = f"Bearer {token}".encode("utf-8")
+        self.expected_token = token.encode("utf-8")
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
@@ -20,10 +23,25 @@ class TeamAccessMiddleware:
                 response = JSONResponse({"status": "ok"})
                 await response(scope, receive, send)
                 return
-            supplied = Headers(scope=scope).get("authorization", "").encode("utf-8")
-            if not hmac.compare_digest(supplied, self.expected):
+            authorization = Headers(scope=scope).get("authorization", "")
+            parts = authorization.split()
+            reason = None
+            if not authorization:
+                reason = "missing_authorization_header"
+            elif not parts or parts[0].lower() != "bearer":
+                reason = "missing_bearer_prefix"
+            elif len(parts) != 2:
+                reason = "malformed_bearer_header"
+            elif not hmac.compare_digest(parts[1].encode("utf-8"), self.expected_token):
+                reason = "token_mismatch"
+            if reason:
+                # Never log credentials, headers, query strings, or request bodies.
+                logger.warning(
+                    "MCP authentication rejected: reason=%s authorization_present=%s credential_length=%d",
+                    reason, bool(authorization), len(parts[-1]) if parts else 0,
+                )
                 response = JSONResponse(
-                    {"error": "Unauthorized"}, status_code=401,
+                    {"error": "Unauthorized", "reason": reason}, status_code=401,
                     headers={"WWW-Authenticate": "Bearer", "Cache-Control": "no-store"},
                 )
                 await response(scope, receive, send)
