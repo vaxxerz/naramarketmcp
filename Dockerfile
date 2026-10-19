@@ -58,15 +58,14 @@ RUN mkdir -p /app/data && chown -R naramarket:naramarket /app
 USER naramarket
 
 # Set dynamic port handling for smithery.ai
-ENV FASTMCP_PORT=${PORT:-8081}
+ENV FASTMCP_PORT=8081
 
 # Health check for MCP server (connection-based check)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f --connect-timeout 3 --max-time 5 http://localhost:${FASTMCP_PORT}/ || \
-        nc -z localhost ${FASTMCP_PORT} || exit 1
+    CMD curl -f --connect-timeout 3 --max-time 5 http://localhost:${PORT:-8081}/healthz || exit 1
 
 # Expose port (will be set by smithery.ai via PORT env var)
-EXPOSE ${FASTMCP_PORT}
+EXPOSE 8081
 
 # Default command for MCP server (smithery.ai compatible)
 CMD ["python", "-m", "src.main"]

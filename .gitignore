@@ -7,6 +7,8 @@ __pycache__/
 
 # Virtual env (if created locally here)
 .venv/
+.python/
+.uv-cache/
 
 # Local env files
 .env

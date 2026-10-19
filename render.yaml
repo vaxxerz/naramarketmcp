@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: naramarket-mcp
+    runtime: docker
+    plan: free
+    region: singapore
+    healthCheckPath: /healthz
+    envVars:
+      - key: FASTMCP_TRANSPORT
+        value: http
+      - key: FASTMCP_HOST
+        value: 0.0.0.0
+      - key: MCP_ACCESS_TOKEN
+        generateValue: true
+      - key: NARAMARKET_SERVICE_KEY
+        sync: false
