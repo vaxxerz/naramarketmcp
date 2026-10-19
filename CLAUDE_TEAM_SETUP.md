@@ -53,6 +53,12 @@ Claude의 모든 팀원이 서버의 공용 공공데이터 키와 호출량을 
 API 안내 호출, 서비스 키 정규화 및 오류 로그 비노출을 검증한다.
 실제 데이터 조회와 Claude 내부 연결 성공은 별도로 확인해야 한다.
 
+배포된 서버 점검 (`.env`에 `MCP_ACCESS_TOKEN` 저장 후):
+
+```powershell
+.venv\Scripts\python.exe scripts/check_remote.py https://naramarket-mcp.onrender.com
+```
+
 공식 문서:
 - https://support.claude.com/en/articles/11175166-get-started-with-custom-connectors-using-remote-mcp
 - https://render.com/docs/free

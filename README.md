@@ -1,5 +1,7 @@
 # 나라장터 MCP 서버
 
+Claude Team 원격 배포 및 관리자 등록: [설정 가이드](CLAUDE_TEAM_SETUP.md).
+
 한국 공공조달(G2B) 데이터를 MCP(Model Context Protocol)로 제공하는 FastMCP 2.0 서버입니다.
 
 입찰공고, 낙찰정보, 계약정보, 조달통계, 물품목록, 종합쇼핑몰 등 나라장터의 주요 API를 AI 에이전트가 바로 사용할 수 있도록 통합했습니다.
@@ -109,7 +111,7 @@ naramarket-mcp
 
 ```bash
 docker build -t naramarket-mcp .
-docker run --rm -e NARAMARKET_SERVICE_KEY=your-key -p 8000:8000 naramarket-mcp
+docker run --rm --env-file .env -p 8081:8081 naramarket-mcp
 ```
 
 ## 환경 변수
