@@ -29,6 +29,12 @@ def retryable(func: Callable) -> Callable:
         for attempt in range(MAX_RETRIES):
             try:
                 return func(*args, **kwargs)
+            except requests.RequestException as e:
+                last_exception = RuntimeError(
+                    f"Public data API request failed ({type(e).__name__})"
+                )
+                if attempt < MAX_RETRIES - 1:
+                    time.sleep(RETRY_BACKOFF_BASE ** attempt)
             except Exception as e:
                 last_exception = e
                 if attempt < MAX_RETRIES - 1:
@@ -49,8 +55,11 @@ class NaramarketAPIClient:
     """API client for Naramarket services."""
     
     def __init__(self):
-        self.service_key = get_service_key()
         self.session = requests.Session()
+
+    @property
+    def service_key(self):
+        return get_service_key()
     
     @retryable
     def call_list_api(self, params: Dict[str, Any]) -> Dict[str, Any]:
@@ -62,7 +71,7 @@ class NaramarketAPIClient:
             **params
         }
         
-        logger.info(f"Calling list API with params: {api_params}")
+        logger.info("Calling list API (page %s)", api_params["pageNo"])
         
         response = self.session.get(BASE_LIST_URL, params=api_params, timeout=30)
         response.raise_for_status()

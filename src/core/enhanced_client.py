@@ -46,15 +46,14 @@ class EnhancedAPIClient:
     """Enhanced API client for all Korean government procurement services."""
 
     def __init__(self):
-        self.service_key = get_service_key()
         self.session = requests.Session()
 
         # Service base URLs
         self.service_urls = {
-            "public_data_standard": "http://apis.data.go.kr/1230000/ao/PubDataOpnStdService",
-            "procurement_statistics": "http://apis.data.go.kr/1230000/at/PubPrcrmntStatInfoService",
-            "product_list": "http://apis.data.go.kr/1230000/ao/ThngListInfoService",
-            "shopping_mall": "http://apis.data.go.kr/1230000/at/ShoppingMallPrdctInfoService"
+            "public_data_standard": "https://apis.data.go.kr/1230000/ao/PubDataOpnStdService",
+            "procurement_statistics": "https://apis.data.go.kr/1230000/at/PubPrcrmntStatInfoService",
+            "product_list": "https://apis.data.go.kr/1230000/ao/ThngListInfoService",
+            "shopping_mall": "https://apis.data.go.kr/1230000/at/ShoppingMallPrdctInfoService"
         }
 
         # Operation mappings for each service
@@ -133,7 +132,7 @@ class EnhancedAPIClient:
             **{k: v for k, v in params.items() if k not in ["numOfRows", "pageNo", "type"]}
         }
 
-        logger.info(f"Calling {service_type}.{operation} with params: {api_params}")
+        logger.info("Calling %s.%s (page %s)", service_type, operation, api_params["pageNo"])
 
         try:
             response = self.session.get(api_url, params=api_params, timeout=30)
@@ -147,9 +146,13 @@ class EnhancedAPIClient:
             logger.error(f"Failed to parse JSON response: {e}")
             logger.error(f"Response text (first 500 chars): {response.text[:500]}")
             raise
-        except Exception as e:
-            logger.error(f"API call failed: {e}")
-            raise
+        except requests.RequestException as e:
+            # Request exception messages contain the URL, including ServiceKey.
+            raise RuntimeError(f"Public data API request failed ({type(e).__name__})") from None
+
+    @property
+    def service_key(self):
+        return get_service_key()
 
     def get_available_operations(self, service_type: str) -> Dict[str, Any]:
         """Get list of available operations for a service type."""

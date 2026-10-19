@@ -20,11 +20,11 @@ MAX_RETRIES = 3
 RETRY_BACKOFF_BASE = 0.75
 
 # 기존 API 엔드포인트 (호환성 유지)
-BASE_LIST_URL = "http://apis.data.go.kr/1230000/at/ShoppingMallPrdctInfoService/getShoppingMallPrdctInfoList"
+BASE_LIST_URL = "https://apis.data.go.kr/1230000/at/ShoppingMallPrdctInfoService/getShoppingMallPrdctInfoList"
 G2B_DETAIL_URL = "https://shop.g2b.go.kr/gm/gms/gmsf/GdsDtlInfo/selectPdctAtrbInfo.do"
 
 # OpenAPI 기본 URL
-OPENAPI_BASE_URL = "http://apis.data.go.kr/1230000"
+OPENAPI_BASE_URL = "https://apis.data.go.kr/1230000"
 OPENAPI_SPEC_PATH = "openapi.yaml"
 
 G2B_HEADERS = {
@@ -130,13 +130,16 @@ def get_service_key() -> str:
             raise ValueError("naramarketServiceKey is required. Set via smithery.ai config or NARAMARKET_SERVICE_KEY environment variable")
         
         # Validate key format (should not be placeholder)
-        if key in ["your-api-key-here", "SECURE_API_KEY_REQUIRED", "", "null", "undefined"]:
+        key = key.strip()
+        if key in ["your-api-key-here", "your_api_key_here", "SECURE_API_KEY_REQUIRED", "", "null", "undefined"]:
             logger.error("Invalid or placeholder API key detected")
             raise ValueError("Invalid API key. Please provide a valid naramarketServiceKey")
         
         # Log success without exposing the key
         logger.info(f"API service key loaded successfully (length: {len(key)})")
-        return key
+        # requests performs URL encoding; accept either portal key representation.
+        from urllib.parse import unquote
+        return unquote(key)
         
     except Exception as e:
         logger.error(f"Error retrieving service key: {e}")
