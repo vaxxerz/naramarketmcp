@@ -592,9 +592,11 @@ def main():
     try:
         from .core.config import get_service_key
 
-        get_service_key()
-
         transport = os.environ.get("FASTMCP_TRANSPORT", "stdio")
+        # Keep HTTP metadata available while waiting for data.go.kr approval.
+        # Data tools validate the key when called.
+        if transport != "http":
+            get_service_key()
         host = os.environ.get("FASTMCP_HOST", "127.0.0.1")
 
         try:
@@ -606,27 +608,14 @@ def main():
         if transport == "http":
             logger.info(f"Starting HTTP server on {host}:{port}")
             import uvicorn
-            from starlette.middleware.cors import CORSMiddleware
-            from .core.smithery_middleware import SmitheryCompatibilityMiddleware
+            from .core.remote_http import create_http_app
 
-            try:
-                app = mcp.http_app()
-            except AttributeError:
-                app = mcp.sse_app()
-
-            app.add_middleware(SmitheryCompatibilityMiddleware)
-            app.add_middleware(
-                CORSMiddleware,
-                allow_origins=["*"],
-                allow_credentials=True,
-                allow_methods=["GET", "POST", "OPTIONS"],
-                allow_headers=["*"],
-                expose_headers=["mcp-session-id", "mcp-protocol-version"],
-                max_age=86400,
-            )
+            app = create_http_app(mcp, host)
             uvicorn.run(app, host=host, port=port)
 
         elif transport == "sse":
+            if host not in {"127.0.0.1", "localhost", "::1"}:
+                raise ValueError("Use authenticated HTTP transport for public deployment")
             logger.info(f"Starting SSE transport on {host}:{port}")
             import asyncio
 
@@ -646,4 +635,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
